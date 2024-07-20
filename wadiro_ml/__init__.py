@@ -1,3 +1,3 @@
 from .models import scnn, wadiro_scnn, wadiro_linreg 
 
-model = scnn()
+__all__ = ['scnn', 'wadiro_scnn', 'wadiro_linreg']
