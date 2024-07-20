@@ -111,8 +111,6 @@ class scnn():
             w_2[i+P] = -temp_w
             
             
-        #self.b1_torch = W_1[:,d-1] if self.bias else 0 #a check
-        #self.W1_torch = W_1[:,0:d-1] if self.bias else W_1 #a check
         self.b1_torch = W_1[:,-1] if self.bias else 0 #a check
         self.W1_torch = W_1[:,0:-1] if self.bias else W_1 #a check
         self.w2_torch = w_2
@@ -680,7 +678,6 @@ def test_FNN_model(data_loader, model, loss_function):
             total_loss += loss_function(output, y).item()
 
     avg_loss = total_loss / num_batches
-    #print(f"Test loss: {avg_loss}")
     return avg_loss
 
 # function to predict outputs with the trained model

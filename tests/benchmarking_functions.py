@@ -1,6 +1,6 @@
 
 import sys
-sys.path.append('..')
+sys.path.append('../src')
 import numpy as np
 import scipy as sc
 import models as hm
@@ -142,13 +142,50 @@ class dataset_wrapper():
         self.Y_val_scaled = self.scaler_y.transform(np.reshape(Y_val, (Y_val.size, 1))) + self.rng.normal(0, 0.05, Y_val.shape) # transform
         self.Y_test_scaled = self.scaler_y.transform(np.reshape(Y_test, (Y_test.size, 1)))  # transform
 
-        # TODO: Apply the outlier introducer
+        
         if corrupt_data_points > 0: 
             train_signal = np.hstack((self.X_train_scaled, self.Y_train_scaled))
             train_signal_sliced = sw.sliced_wasserstein_outlier_introducer(train_signal, [lower_bounds, upper_bounds], self.bench_func, self.n_dim, corrupt_data_points, min_distance, n_projections, k_multiplier, L, seed, self.rng)
             
             self.X_train_scaled = train_signal_sliced[:,:-1]
             self.Y_train_scaled = np.reshape(train_signal_sliced[:,-1], (train_signal_sliced[:,-1].size, 1))
+
+        return True
+    
+    def generate_data_wasserstein_corrupt_both(self, corrupt_data_points:int = 0, min_distance:float = 0.2, n_projections:int = 100, k_multiplier:int = 1.1, L:float=2, seed:int = 42):
+        lower_bounds = self.bench_func.suggested_bounds()[0]
+        upper_bounds = self.bench_func.suggested_bounds()[1]
+        
+        self.X = self.rng.uniform(low = lower_bounds[0], high=upper_bounds[0], size = (self.N, self.n_dim))
+        self.Y = np.array([self.bench_func(self.X[i]) for i in range(self.N)])
+       
+
+        # train test split for training and validation phase
+        X_train, X_test, Y_train, Y_test = train_test_split(self.X, self.Y, test_size=self.test_size, shuffle=False)
+        Y_train = np.reshape(Y_train, (Y_train.size, 1))
+        Y_test = np.reshape(Y_test, (Y_test.size, 1))
+        # TODO: Apply the outlier introducer on both training and validation
+        if corrupt_data_points > 0: 
+            train_signal = np.hstack((X_train, Y_train))
+            train_signal_sliced = sw.sliced_wasserstein_outlier_introducer(train_signal, [lower_bounds, upper_bounds], self.bench_func, self.n_dim, corrupt_data_points, min_distance, n_projections, k_multiplier, L, seed, self.rng)
+            
+            X_train = train_signal_sliced[:,:-1]
+            Y_train = np.reshape(train_signal_sliced[:,-1], (train_signal_sliced[:,-1].size, 1))
+
+
+        X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, train_size= self.train_size, shuffle = True)
+
+        # Scale
+        self.scaler_x = self.scaler_x.fit(X_train)  # fit scaler on training inputs to avoid data leakage
+        self.X_train_scaled = self.scaler_x.transform(X_train) + self.rng.normal(0, 0.05, X_train.shape)  # transform
+        self.X_val_scaled = self.scaler_x.transform(X_val) + self.rng.normal(0, 0.05, X_val.shape)# transform
+        self.X_test_scaled = self.scaler_x.transform(X_test)  # transform
+
+        Y_train = np.reshape(Y_train, (Y_train.size, 1))
+        self.scaler_y = self.scaler_y.fit(Y_train)  # fit scaler on training outputs to avoid data leakage
+        self.Y_train_scaled = self.scaler_y.transform(Y_train) + self.rng.normal(0, 0.05, Y_train.shape) # transform
+        self.Y_val_scaled = self.scaler_y.transform(np.reshape(Y_val, (Y_val.size, 1))) + self.rng.normal(0, 0.05, Y_val.shape) # transform
+        self.Y_test_scaled = self.scaler_y.transform(np.reshape(Y_test, (Y_test.size, 1)))  # transform
 
         return True
 
@@ -184,7 +221,7 @@ def objective_DR_SCNN(params, data, criterion, solver_name, experiment, n_corrup
 
     start_time_model = datetime.now() # start timer for whole training
     # define model
-    model = hm.DR_SCNN_ReLU_decoupled()
+    model = hm.wadiro_scnn()
     
     
     with mlflow.start_run() as run:
@@ -280,7 +317,7 @@ def objective_SCNN(params, data, criterion, solver_name, experiment, n_corrupted
 
     start_time_model = datetime.now() # start timer for whole training
     # define model
-    model = hm.SCNN_ReLU()
+    model = hm.scnn()
     
     
     with mlflow.start_run() as run:
@@ -374,7 +411,7 @@ def objective_SCNN_no_reg(params, data, criterion, solver_name, experiment, n_co
 
     start_time_model = datetime.now() # start timer for whole training
     # define model
-    model = hm.SCNN_ReLU()
+    model = hm.scnn()
     
     
     with mlflow.start_run() as run:
@@ -558,7 +595,7 @@ def objective_DR_linreg(params, data, criterion, solver_name, experiment, n_corr
 
     start_time_model = datetime.now() # start timer for whole training
     # define model
-    model = hm.DR_linreg()
+    model = hm.wadiro_linreg()
     
     
     with mlflow.start_run() as run:
