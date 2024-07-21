@@ -33,6 +33,3 @@ def sliced_wasserstein_outlier_introducer(signal, domain, in_sample_function, do
     return copy_signal
 
 
-
-def sliced_wasserstein_outlier_filter():
-    return None

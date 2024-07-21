@@ -1,6 +1,6 @@
 
 import sys
-sys.path.append('../wadiro_ml')
+sys.path.append('../src')
 import numpy as np
 import scipy as sc
 import models as hm
