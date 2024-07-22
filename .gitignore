@@ -2,4 +2,4 @@
 ./*/__pycache__
 *__pycache__ 
 ./dist*
-./wadiroscnn.egg-info*
+./*wadiroscnn.egg-info*
