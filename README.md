@@ -1,7 +1,6 @@
 # WaDiRo-SCNN
 A Python implementation of the Wasserstein Distributionally Robust Shallow Convex Neural Networks from the work of Julien Pallage and Antoine Lesage-Landry.
 
-🚧 **Page in construction** 🚧
 ---
 ---
 ## Introduction:
