@@ -22,6 +22,11 @@ In addition to the WaDiRo-SCNN, we also implement a WaDiRo linear regression and
 
 ## How to use it:
 
+### Download:
+```python
+pip install wadiroscnn
+```
+
 ### Create and train a model:
 
 Choose between:
