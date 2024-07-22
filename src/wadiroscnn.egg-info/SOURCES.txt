@@ -1,0 +1,11 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+src/wadiroscnn/__init__.py
+src/wadiroscnn/models.py
+src/wadiroscnn.egg-info/PKG-INFO
+src/wadiroscnn.egg-info/SOURCES.txt
+src/wadiroscnn.egg-info/dependency_links.txt
+src/wadiroscnn.egg-info/requires.txt
+src/wadiroscnn.egg-info/top_level.txt

@@ -1,13 +1,12 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='wadiro_ml',
-    version='0.1',
+    name='wadiroscnn',
+    version='0.3',
     package_dir = {"": "src"},
     packages = find_packages(where="src"),
     install_requires=[
         'numpy>=1.26',
-        'torch>=2.*',
         'cvxpy>=1.3',
         'pandas>=2.1',
         'scikit-learn>=1.3',
@@ -20,3 +19,4 @@ setup(
         "Operating System :: OS Independent",
     ],
         )
+

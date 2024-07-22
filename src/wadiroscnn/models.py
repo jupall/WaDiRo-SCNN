@@ -611,7 +611,8 @@ class CustomDataset(Dataset): # the one to use for multiswag
     def __getitem__(self, i):
         x = self.X[i]
         return x, self.y[i]
-    
+
+"""
 class FNN_Model(nn.Module):
     def __init__(self, dropout_p, n_input_layers, n_hidden, n_output_layers) -> None:
         super(FNN_Model, self).__init__()
@@ -691,3 +692,4 @@ def predict_FNN(data_loader, model):
             output = torch.cat((output, y_star), 0)
     
     return output
+"""
