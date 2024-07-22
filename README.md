@@ -8,7 +8,7 @@ A Python implementation of the Wasserstein Distributionally Robust Shallow Conve
 This work generalizes prior work done by [1,2] under the lens of Wasserstein Distributionally Robust Optimization. We train our model with an exact reformulation of the order-1 Wasserstein DRO problem [3,4,5].
 
 Why is it interesting? :
-- Non-linearscalable predictor;
+- Non-linear scalable predictor;
 - Low-stochasticity training compared to standard Shallow Neural Networks training programs.
 - Provable out-of-sample performance: perfect for critical applications, e.g., energy, finance, healthcare;
 - Easily solvable with open-source solvers, e.g., Clarabel [6];
