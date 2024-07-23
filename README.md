@@ -50,7 +50,7 @@ model.train(X_train=data.X_train, Y_train=data.Y_train, radius = radius, bias = 
 
 ```python
 
-model_torch = model.get_torch_model(verbose = False)
+model_torch = model.get_torch_model(verbose = verbose)
 
 output = model_torch(data.X_test)
 
@@ -78,9 +78,9 @@ COMING SOON
 
 This work was possible thanks to:
 
-1. the incredible python package pyscnn : https://github.com/pilancilab/scnn
-2. the open-source convex solver Clarabel : https://github.com/oxfordcontrol/Clarabel.jl
-3. the library benchmark functions : https://gitlab.com/luca.baronti/python_benchmark_functions/-/tree/master?ref_type=heads
-4. CVXPY : https://www.cvxpy.org/version/1.1/index.html
+1. the incredible Python package `pyscnn` : https://github.com/pilancilab/scnn
+2. the open-source convex solver `Clarabel` : https://github.com/oxfordcontrol/Clarabel.jl
+3. the library `benchmark functions` : https://gitlab.com/luca.baronti/python_benchmark_functions/-/tree/master?ref_type=heads
+4. `CVXPY` : https://www.cvxpy.org/version/1.1/index.html
 
 
