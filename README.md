@@ -8,7 +8,7 @@ This work generalizes prior work done by [1,2] under the lens of Wasserstein Dis
 
 Why is it interesting? :
 - Non-linear scalable predictor;
-- Low-stochasticity training compared to standard Shallow Neural Networks training programs.
+- Low-stochasticity training compared to standard Shallow Neural Networks training programs;
 - Provable out-of-sample performance: perfect for critical applications, e.g., energy, finance, healthcare;
 - Easily solvable with open-source solvers, e.g., Clarabel [6];
 - Conservative training procedure which generalizes standard regularization;
