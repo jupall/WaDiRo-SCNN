@@ -34,6 +34,8 @@ Choose between:
 3. `scnn()`
 
 ```python
+from wadiroscnn import wadiro_scnn
+
 solver_name = "CLARABEL" # default option
 verbose = True 
 
