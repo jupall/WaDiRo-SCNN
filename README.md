@@ -58,7 +58,17 @@ output = model_torch(data.X_test)
 
 ## Cite our work and read our paper:
 
-COMING SOON
+```
+@misc{pallage2024wassersteindistributionallyrobustshallow,
+      title={Wasserstein Distributionally Robust Shallow Convex Neural Networks}, 
+      author={Julien Pallage and Antoine Lesage-Landry},
+      year={2024},
+      eprint={2407.16800},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2407.16800}, 
+}
+```
 
 ## References:
 
