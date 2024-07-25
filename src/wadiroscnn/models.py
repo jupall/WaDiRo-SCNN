@@ -38,7 +38,23 @@ class SCNN_torch(nn.Module):
 class scnn():
     """ 
     SCNN with ReLU activation patterns solved with CVXPY. 
-    
+
+    Attributes:
+    - bias: The inclusion of bias weights in the model.
+    - n_inputs: The number of input features.
+    - v_opt: The optimal weigths of the convex formulation of the scnn training.
+    - w_opt: The optimal weigths of the convex formulation of the scnn training.
+    - b2_opt: The optimal bias of the output neuron.
+    - W1_torch: The equivalent weights of the first layer of the scnn model for Pytorch.
+    - w2_torch: The equivalent weights of the second layer of the scnn model for Pytorch.
+    - b1_torch: The equivalent bias of the first layer of the scnn model for Pytorch.
+    - b2_torch: The equivalent bias of the second layer of the scnn model for Pytorch.
+    - max_neurons: The maximum number of neurons in the hidden layer.
+    - model: The Pytorch equivalent model of the scnn.
+    - loss: The loss function to be used ["l1" or "l2"].
+    - regularizer: The regularizer to be used ["RIDGE" or "LASSO"].
+    - lamb_reg: The regularization parameter.
+    - sampled_u: The sampled gate vectors.
     """
     def __init__(self)-> None:
         super(scnn, self).__init__()
@@ -119,6 +135,14 @@ class scnn():
         
 
     def get_torch_model(self, verbose:bool = False)->nn.Module:
+        """Generate the equivalent non-convex weigths and introduce them into a Pytorch model.
+
+        Args:
+            verbose (bool, optional): Print information on the procedure. Defaults to False.
+
+        Returns:
+            nn.Module: a Pytorch neural network.
+        """
         P,d = self.v_opt.shape
         if self.bias:
             d = d-1
@@ -152,6 +176,22 @@ class scnn():
         return model
     
     def train(self, X_train, Y_train, bias:bool, max_neurons:int, loss:str="l1", lamb_reg:float = 0, regularizer:str = "LASSO",solver:str = "CLARABEL", verbose:bool=False):
+        """Train the SCNN model to optimality. This training is only optimal if the maximum number of neurons is large enough. 
+        Otherwise, the model should still be performant.
+
+        Args:
+            X_train (ndartray): Training features.
+            Y_train (ndarray): Training labels.
+            bias (bool): Inclusion of bias weights.
+            max_neurons (int): Maximal number of neurons in the hidden layer.
+            loss (str): Loss function to be used ["l1" or "l2"]. Defaults to "l1".
+            lamb_reg (float, optional): Regularization parameter. Defaults to 0.
+            regularizer (str, optional): Regularization to be used ["RIDGE" or "LASSO"]. Defaults to "LASSO".
+            solver (str, optional): Solver to integrate with CVXPY. Defaults to "CLARABEL".
+            verbose (bool, optional): Print additional information on solving. Defaults to False.
+        Returns:
+            float: The value of the optimal objective function.
+        """
         N,d = X_train.shape
         self.n_inputs = d
         self.bias = bias
@@ -232,6 +272,14 @@ class scnn():
         return prob.value
     
     def predict_with_sampled_u(self, x, verbose=False):
+        """Predict the output of the SCNN model with the sampled gate vectors. 
+        
+        This output should be equivalent to the output of the PyTorch model if the number of neurons is large enough.
+
+        Args:
+            x (ndarray): Features to predict.
+            verbose (bool, optional): Print additional information. Defaults to False.
+        """
         N,d = x.shape
         
         d_mod = d
@@ -276,7 +324,21 @@ class scnn():
     
 class wadiro_scnn():
     """ 
-    SCNN with ReLU activation patterns solved in a Wasserstein DRO problem 
+    SCNN with ReLU activation patterns trained in a tractable order-1 Wasserstein DRO formulation. 
+
+    Attributes:
+    - bias: The inclusion of bias weights in the model.
+    - n_inputs: The number of input features.
+    - v_opt: The optimal weigths of the convex formulation of the scnn training.
+    - w_opt: The optimal weigths of the convex formulation of the scnn training.
+    - b2_opt: The optimal bias of the output neuron.
+    - W1_torch: The equivalent weights of the first layer of the scnn model for Pytorch.
+    - w2_torch: The equivalent weights of the second layer of the scnn model for Pytorch.
+    - b1_torch: The equivalent bias of the first layer of the scnn model for Pytorch.
+    - b2_torch: The equivalent bias of the second layer of the scnn model for Pytorch.
+    - max_neurons: The maximum number of neurons in the hidden layer.
+    - model: The Pytorch equivalent model of the scnn.
+    - radius: The radius of the Wasserstein ball.
     """
     def __init__(self)-> None:
         super(wadiro_scnn, self).__init__()
@@ -356,6 +418,14 @@ class wadiro_scnn():
         
 
     def get_torch_model(self, verbose:bool=False)->nn.Module:
+        """Generate the equivalent non-convex weigths and introduce them into a Pytorch model.
+
+        Args:
+            verbose (bool, optional): Print information on the procedure. Defaults to False.
+
+        Returns:
+            nn.Module: a Pytorch neural network.
+        """
         P,d = self.v_opt.shape
         if self.bias:
             d = d-1
@@ -391,6 +461,21 @@ class wadiro_scnn():
         
 
     def train(self, X_train, Y_train, radius:float, bias:bool, max_neurons:int, solver:str = "CLARABEL", verbose:bool=True, wasserstein:str="l1"):
+        """Train the WaDiRo-SCNN model to optimality. This training is only optimal if the maximum number of neurons is large enough. 
+        Otherwise, the model should still be performant.
+
+        Args:
+            X_train (ndartray): Training features.
+            Y_train (ndarray): Training labels.
+            radius (float): Radius of the Wasserstein ball.
+            bias (bool): Inclusion of bias weights.
+            max_neurons (int): Maximal number of neurons in the hidden layer.
+            solver (str, optional): Solver to integrate with CVXPY. Defaults to "CLARABEL".
+            verbose (bool, optional): Print additional information on solving. Defaults to True.
+            wasserstein (str, optional): The norm to be used in the definition of the wasserstein distance ["l1" or "l2"]. Defaults to "l1".
+        Returns:
+            float: The value of the optimal objective function.
+        """
         N,d = X_train.shape
         self.n_inputs = d
         self.bias = bias
@@ -470,7 +555,14 @@ class wadiro_scnn():
     
 class wadiro_linreg():
     """
-    A Wasserstein DRO linear regression
+    A Wasserstein DRO linear regression implementation with CVXPY.
+
+    Attributes:
+    - bias: The inclusion of a bias weight in the model.
+    - Beta: The optimal weights of the linear regression.
+    - b: The optimal bias of the linear regression.
+    - n_inputs: The number of input features.
+    - radius: The radius of the Wasserstein ball.
     """
     def __init__(self)-> None:
         super(wadiro_linreg, self).__init__()
@@ -481,6 +573,16 @@ class wadiro_linreg():
         self.radius = None
     
     def train(self, X_train, Y_train, radius:float, solver:str = "CLARABEL", wasserstein:str='l1', verbose:bool = True):
+        """Train the WaDiRo-LinReg model to optimality with CVXPY.
+
+        Args:
+            X_train (ndarray): Training features.
+            Y_train (ndarray): Training labels.
+            radius (float): The radius of the Wasserstein ball.
+            solver (str, optional): Solver to integrate with CVXPY. Defaults to "CLARABEL".
+            wasserstein (str, optional): The norm to be used in the definition of the wasserstein distance ["l1" or "l2"]. Defaults to 'l1'.
+            verbose (bool, optional): Print additional information on solving. Defaults to True.
+        """
         self.radius = radius
         self.n_inputs = X_train.shape[1]
         N = X_train.shape[0] # Number of data point
