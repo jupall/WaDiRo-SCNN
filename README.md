@@ -52,9 +52,13 @@ model.train(X_train=data.X_train, Y_train=data.Y_train, radius = radius, bias = 
 
 model_torch = model.get_torch_model(verbose = verbose)
 
-output = model_torch(data.X_test)
+output = model_torch(torch.tensor(data.X_test))
 
 ```
+
+### Tutorial:
+Notebook:
+https://github.com/jupall/WaDiRo-SCNN/blob/main/experiments/tutorial.ipynb
 
 ## Cite our work and read our paper:
 
