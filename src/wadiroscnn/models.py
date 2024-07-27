@@ -284,42 +284,26 @@ class scnn():
         
         d_mod = d
         output_list = []
-        print(x)
+
         if self.bias:
             x = np.hstack((x, np.ones((N,1)))) # hidden neurons bias
             d_mod += 1
-        if verbose:
-            print(x)
-            print(f"Shape of x: {x.shape}")
+       
         G = self.sampled_u.T
-        if verbose:
-            print(f"Shape of sampled vectors: {G.shape}")
-            print(G)
         u = np.array(self.v_opt - self.w_opt)
-        if verbose: 
-            print(f"Shape of weights: {u.shape}")
+    
         Beta = np.array(u).flatten(order='F').reshape(-1,1) 
-        if verbose:
-            print(f"Shape of vectorized weights: {Beta.shape}")
-            print(Beta)
+        
         for i in range(N):
             d_j = np.array((np.array(G@x[i].T) > 0).reshape(-1,1), dtype = np.float64)
-            if verbose:
-                print(f"Shape of d_j = G@x: {d_j.shape}")
-                print(d_j)
 
             z = np.array(d_j@x[i,:].reshape((1,d_mod)))
-            if verbose:
-                print(f"Shape of z = x@d_j.T: {z.shape}")
-                print(z)
             z = z.flatten(order='F').reshape(-1,1)
-            if verbose:
-                print(f"Shape of vec(z): {z.shape}")
-                print(z)
+
 
             output = np.dot(Beta.T, z) + self.b2_opt
             output_list.append(output)
-        return np.array(output_list)
+        return np.array(output_list).flatten().reshape(-1,1)
 
     
 class wadiro_scnn():
@@ -354,6 +338,7 @@ class wadiro_scnn():
         self.max_neurons = None
         self.model = None
         self.radius = None
+        self.sampled_u = None
         
     def __sample_gate_vectors(self,d:int, n_samples:int, seed:int=42)->np.ndarray:
         rng = np.random.default_rng(seed=seed)
@@ -387,6 +372,7 @@ class wadiro_scnn():
             D = D[:, non_zero_cols]
             G = G[:, non_zero_cols]
 
+        self.sampled_u = G
         return D, G # note: the D matrix, here, is of shape n x max samples, so there are max_samples times vectors that needs to be put in actual matrices with diag()
     
     def __get_equivalent_weights(self):
@@ -460,7 +446,7 @@ class wadiro_scnn():
     
         
 
-    def train(self, X_train, Y_train, radius:float, bias:bool, max_neurons:int, solver:str = "CLARABEL", verbose:bool=True, wasserstein:str="l1"):
+    def train(self, X_train, Y_train, radius:float, bias:bool, max_neurons:int, solver:str = "CLARABEL", verbose:bool=False, wasserstein:str="l1"):
         """Train the WaDiRo-SCNN model to optimality. This training is only optimal if the maximum number of neurons is large enough. 
         Otherwise, the model should still be performant.
 
@@ -553,6 +539,40 @@ class wadiro_scnn():
 
         return prob.value
     
+    def predict_with_sampled_u(self, x, verbose=False):
+        """Make a prediction with the trained WaDiRo-SCNN model and its sampled gate vectors. 
+        
+        This output should be equivalent to the output of the PyTorch model if the number of neurons is large enough.
+
+        Args:
+            x (ndarray): Features to predict.
+            verbose (bool, optional): Print additional information. Defaults to False.
+        """
+        N,d = x.shape
+        
+        d_mod = d
+        output_list = []
+
+        if self.bias:
+            x = np.hstack((x, np.ones((N,1)))) # hidden neurons bias
+            d_mod += 1
+       
+        G = self.sampled_u.T
+        u = np.array(self.v_opt - self.w_opt)
+    
+        Beta = np.array(u).flatten(order='F').reshape(-1,1) 
+        
+        for i in range(N):
+            d_j = np.array((np.array(G@x[i].T) > 0).reshape(-1,1), dtype = np.float64)
+
+            z = np.array(d_j@x[i,:].reshape((1,d_mod)))
+            z = z.flatten(order='F').reshape(-1,1)
+
+
+            output = np.dot(Beta.T, z) + self.b2_opt
+            output_list.append(output)
+        return np.array(output_list).flatten().reshape(-1,1)
+    
 class wadiro_linreg():
     """
     A Wasserstein DRO linear regression implementation with CVXPY.
@@ -572,7 +592,7 @@ class wadiro_linreg():
         self.n_inputs = None
         self.radius = None
     
-    def train(self, X_train, Y_train, radius:float, solver:str = "CLARABEL", wasserstein:str='l1', verbose:bool = True):
+    def train(self, X_train, Y_train, radius:float, solver:str = "CLARABEL", wasserstein:str='l1', verbose:bool = False):
         """Train the WaDiRo-LinReg model to optimality with CVXPY.
 
         Args:

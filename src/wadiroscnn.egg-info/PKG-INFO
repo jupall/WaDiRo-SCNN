@@ -1,6 +1,7 @@
 Metadata-Version: 2.1
 Name: wadiroscnn
-Version: 0.4
+Version: 0.6
+Summary: WaDiRo-SCNN: A Python implementation of the Wasserstein Distributionally Robust Shallow Convex Neural Networks from the work of Julien Pallage and Antoine Lesage-Landry.
 Home-page: https://github.com/jupall/WaDiRo-SCNN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
@@ -12,3 +13,5 @@ Requires-Dist: cvxpy>=1.3
 Requires-Dist: pandas>=2.1
 Requires-Dist: scikit-learn>=1.3
 Requires-Dist: scipy>=1.11
+
+For more information, please visit the GitHub repository: jupall/WaDiRo-SCNN
