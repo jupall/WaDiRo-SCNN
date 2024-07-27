@@ -76,6 +76,8 @@ https://github.com/jupall/WaDiRo-SCNN/blob/main/experiments/tutorial.ipynb
 }
 ```
 
+Link: https://arxiv.org/abs/2407.16800
+
 ## References:
 
 [1] M. Pilanci and T. Ergen, “Neural networks are convex regularizers: Exact polynomial-time convex optimization formulations for two-layer networks,” in International Conference on Machine Learning, PMLR, 2020, pp. 7695–7705.
