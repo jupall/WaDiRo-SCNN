@@ -2,6 +2,8 @@
 A Python implementation of the Wasserstein Distributionally Robust Shallow Convex Neural Networks from the work of Julien Pallage and Antoine Lesage-Landry.
 
 ---
+[![PyPI version](https://badge.fury.io/py/wadiroscnn.svg)](https://badge.fury.io/py/wadiroscnn) [![Downloads](https://static.pepy.tech/badge/wadiroscnn)](https://pepy.tech/project/wadiroscnn) 
+---
 
 ## Introduction:
 This work generalizes prior work done by [1,2] under the lens of Wasserstein Distributionally Robust Optimization. We train our model with an exact reformulation of the order-1 Wasserstein DRO problem [3,4,5].
