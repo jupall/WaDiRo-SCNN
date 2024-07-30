@@ -2,7 +2,9 @@
 A Python implementation of the Wasserstein Distributionally Robust Shallow Convex Neural Networks from the work of Julien Pallage and Antoine Lesage-Landry.
 
 ---
+
 [![PyPI version](https://badge.fury.io/py/wadiroscnn.svg)](https://badge.fury.io/py/wadiroscnn) [![Downloads](https://static.pepy.tech/badge/wadiroscnn)](https://pepy.tech/project/wadiroscnn) 
+
 ---
 
 ## Introduction:
