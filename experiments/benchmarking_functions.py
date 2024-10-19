@@ -560,7 +560,7 @@ def objective_linreg(params, data, criterion, solver_name, experiment, n_corrupt
 
         # save model
         now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"/home/julien/Documents/code/maitrise/my version/logged_models/linreg_{now_string}.csv"
+        str_path = f"./logged_models/linreg_{now_string}.csv"
         np.savetxt(
                 str_path,
                 np.concatenate(( model.Beta, np.array([model.b]))),
@@ -651,7 +651,7 @@ def objective_DR_linreg(params, data, criterion, solver_name, experiment, n_corr
 
         # save model
         now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"/home/julien/Documents/code/maitrise/my version/logged_models/DR_linreg_{now_string}.csv"
+        str_path = f"./logged_models/DR_linreg_{now_string}.csv"
         np.savetxt(
                 str_path,
                 np.concatenate(( model.Beta, np.array([model.b]))),
@@ -758,7 +758,7 @@ def objective_FNN(params, data, criterion, experiment, n_corrupted_points, func_
    
         # save model
         now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"/home/julien/Documents/code/maitrise/my version/logged_models/FNN_{now_string}.pt"
+        str_path = f"./logged_models/FNN_{now_string}.pt"
         mlflow.set_tag("path_to_model", str_path)
         
         mlflow.pytorch.save_state_dict(
