@@ -1,9 +1,9 @@
 import sys
-sys.path.append('../src/wadiroscnn')
+sys.path.append('.')
 import hyperopt as hp
 import numpy as np
 import scipy as sc
-import models as hm
+import comparison_models as hm
 import benchmark_functions as bf
 import benchmarking_functions as bench
 from sklearn.preprocessing import StandardScaler

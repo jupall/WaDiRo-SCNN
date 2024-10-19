@@ -1,9 +1,9 @@
 
 import sys
-sys.path.append('../src')
+sys.path.append('.')
 import numpy as np
 import scipy as sc
-import models as hm
+import comparison_models as hm
 import benchmark_functions as bf
 from sklearn.preprocessing import StandardScaler
 import sklearn as sk
