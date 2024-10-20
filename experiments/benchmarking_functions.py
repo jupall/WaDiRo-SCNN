@@ -391,7 +391,7 @@ def objective_SCNN(params, data, criterion, solver_name, experiment, n_corrupted
         except:
             val_loss = 1e6
             mlflow.log_metric("MAE_val", val_loss)
-        mlflow.end_run() #end run
+    mlflow.end_run() #end run
         
     return  {
          "status": STATUS_OK,
@@ -488,7 +488,7 @@ def objective_SCNN_no_reg(params, data, criterion, solver_name, experiment, n_co
             val_loss = 1e6
             mlflow.log_metric("MAE_val", val_loss)
 
-        mlflow.end_run() #end run
+    mlflow.end_run() #end run
         
     return  {
          "status": STATUS_OK,
@@ -582,7 +582,7 @@ def objective_linreg(params, data, criterion, solver_name, experiment, n_corrupt
         except:
             val_loss = 1e6
             mlflow.log_metric("MAE_val", val_loss)
-        mlflow.end_run() #end run
+    mlflow.end_run() #end run
         
     return  {
          "status": STATUS_OK,
@@ -676,7 +676,7 @@ def objective_DR_linreg(params, data, criterion, solver_name, experiment, n_corr
         except:
             val_loss = 1e6
             mlflow.log_metric("MAE_val", val_loss)
-        mlflow.end_run() #end run
+    mlflow.end_run() #end run
         
     return  {
          "status": STATUS_OK,

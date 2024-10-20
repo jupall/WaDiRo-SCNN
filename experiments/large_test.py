@@ -58,7 +58,7 @@ search_space_FNN =  {'batch_size' : hp.quniform('batch_size', 2, 100, 1),
                 'dropout_p': hp.uniform('dropout_p', 0.01, 0.4)}
 
 
-rng = np.random.default_rng(42)
+
 criterion = nn.L1Loss()
 
 solver_name = "CLARABEL"
@@ -66,7 +66,7 @@ n_runs = 10
 max_evals = 400
 max_evals_FNN = int(max_evals)
 verbose = False
-N = 2000
+N = 200
 train_size = 0.75
 test_size = 0.2
 corruption_percentage_list = [ 0.15, 0.30, 0.45, 0.60]
@@ -82,8 +82,11 @@ FUNCTIONS_LIST = [
 	]
 
 for corruption_percentage in corruption_percentage_list:
+        random_seed = 42
         n_corrupted_points = int(N*(1-test_size)*corruption_percentage) 
         for run in range(n_runs):
+                rng = np.random.default_rng(random_seed)
+                random_seed +=1
                 experiment_name = f"large_test_CC_run{run}_corper{str(corruption_percentage)[2:]}"
                 try:
                         #experiment = mlflow.set_experiment("test")
