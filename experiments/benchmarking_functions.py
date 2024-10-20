@@ -225,69 +225,73 @@ def objective_DR_SCNN(params, data, criterion, solver_name, experiment, n_corrup
     
     
     with mlflow.start_run() as run:
+        try:
        
-       
-        # train
-        model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, radius = radius, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, wasserstein=wasserstein)
-        
-        # torch model
-        model_torch = model.get_torch_model(verbose=verbose)
-        
-        # get training loss 
-        train_loss, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
-        
-        # get validation loss
-        val_loss, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
-        
-        # get test loss
-        test_loss, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
+            # train
+            model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, radius = radius, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, wasserstein=wasserstein)
+            
+            # torch model
+            model_torch = model.get_torch_model(verbose=verbose)
+            
+            # get training loss 
+            train_loss, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+            
+            # get validation loss
+            val_loss, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
+            
+            # get test loss
+            test_loss, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
 
-        # get Mean squared error
-        mse = nn.MSELoss()
-        train_MSE, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            # get Mean squared error
+            mse = nn.MSELoss()
+            train_MSE, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            
+            # get validation loss
+            val_MSE, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
+            
+            # get test loss
+            test_MSE, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
+
+            end_time_model =  datetime.now() 
         
-        # get validation loss
-        val_MSE, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
-        
-        # get test loss
-        test_MSE, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
-
-        end_time_model =  datetime.now() 
-    
-        mlflow.set_tag("model_name", "DR_SCNN")
-        mlflow.log_param("radius", radius)
-        mlflow.log_param("max_neurons", max_neurons)
-        mlflow.log_param("bias", bias)
-        mlflow.log_param("benchmark_functions", func_name)
-        mlflow.log_param("data", data)
-        mlflow.log_param("solver", solver_name)
-        mlflow.log_param("n_corrupted_points", n_corrupted_points)
-        mlflow.log_param("wasserstein distance", wasserstein)
+            mlflow.set_tag("model_name", "DR_SCNN")
+            mlflow.log_param("radius", radius)
+            mlflow.log_param("max_neurons", max_neurons)
+            mlflow.log_param("bias", bias)
+            mlflow.log_param("benchmark_functions", func_name)
+            mlflow.log_param("data", data)
+            mlflow.log_param("solver", solver_name)
+            mlflow.log_param("n_corrupted_points", n_corrupted_points)
+            mlflow.log_param("wasserstein distance", wasserstein)
 
 
-        # Start training and testing
+            # Start training and testing
 
-        mlflow.log_metric("MAE_val", val_loss.detach().numpy())
-        mlflow.log_metric("MAE_train", train_loss.detach().numpy())
-        mlflow.log_metric("MAE_test", test_loss.detach().numpy())
-        mlflow.log_metric("MSE_val", val_MSE.detach().numpy())
-        mlflow.log_metric("MSE_train", train_MSE.detach().numpy())
-        mlflow.log_metric("MSE_test", test_MSE.detach().numpy())
-        #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
-        mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
+            mlflow.log_metric("MAE_val", val_loss.detach().numpy())
+            mlflow.log_metric("MAE_train", train_loss.detach().numpy())
+            mlflow.log_metric("MAE_test", test_loss.detach().numpy())
+            mlflow.log_metric("MSE_val", val_MSE.detach().numpy())
+            mlflow.log_metric("MSE_train", train_MSE.detach().numpy())
+            mlflow.log_metric("MSE_test", test_MSE.detach().numpy())
+            #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
+            mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
 
-        mlflow.log_param("training time", end_time_model - start_time_model)
-        print(f'Training duration: {end_time_model - start_time_model}')
+            mlflow.log_param("training time", end_time_model - start_time_model)
+            print(f'Training duration: {end_time_model - start_time_model}')
 
-        # save model
-        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"./logged_models/DR_SCNN_{now_string}.pt"
-        mlflow.set_tag("path_to_model", str_path)
-        
-        mlflow.pytorch.save_state_dict(
-                model_torch.state_dict(),
-                path=str_path,
-            )
+            # save model
+            now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
+            str_path = f"./logged_models/DR_SCNN_{now_string}.pt"
+            mlflow.set_tag("path_to_model", str_path)
+            
+            mlflow.pytorch.save_state_dict(
+                    model_torch.state_dict(),
+                    path=str_path,
+                )
+        except:
+            val_loss = 1e6
+            mlflow.log_metric("MAE_val", val_loss)
+
         mlflow.end_run() #end run
         
     return  {
@@ -321,69 +325,72 @@ def objective_SCNN(params, data, criterion, solver_name, experiment, n_corrupted
     
     
     with mlflow.start_run() as run:
-       
-        # train
-        model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, lamb_reg=  lamb_reg, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, loss=loss, regularizer=regularizer)
-        
-        # torch model
-        model_torch = model.get_torch_model(verbose=verbose)
-        
-        # get training loss 
-        train_loss, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
-        
-        # get validation loss
-        val_loss, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
-        
-        # get test loss
-        test_loss, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
+        try:
+            # train
+            model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, lamb_reg=  lamb_reg, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, loss=loss, regularizer=regularizer)
+            
+            # torch model
+            model_torch = model.get_torch_model(verbose=verbose)
+            
+            # get training loss 
+            train_loss, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+            
+            # get validation loss
+            val_loss, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
+            
+            # get test loss
+            test_loss, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
 
-        mse = nn.MSELoss()
-        train_MSE, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            mse = nn.MSELoss()
+            train_MSE, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            
+            # get validation loss
+            val_MSE, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
+            
+            # get test loss
+            test_MSE, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
+
+            end_time_model =  datetime.now() 
         
-        # get validation loss
-        val_MSE, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
-        
-        # get test loss
-        test_MSE, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
-
-        end_time_model =  datetime.now() 
-    
-        mlflow.set_tag("model_name", "SCNN")
-        mlflow.log_param("regularizer", regularizer)
-        mlflow.log_param("loss", loss)
-        mlflow.log_param("lamb_reg", lamb_reg)
-        mlflow.log_param("max_neurons", max_neurons)
-        mlflow.log_param("bias", bias)
-        mlflow.log_param("benchmark_functions", func_name)
-        mlflow.log_param("data", data)
-        mlflow.log_param("solver", solver_name)
-        mlflow.log_param("n_corrupted_points", n_corrupted_points)
-        #mlflow.log_param("output_noise_prob",output_noise_prob)
+            mlflow.set_tag("model_name", "SCNN")
+            mlflow.log_param("regularizer", regularizer)
+            mlflow.log_param("loss", loss)
+            mlflow.log_param("lamb_reg", lamb_reg)
+            mlflow.log_param("max_neurons", max_neurons)
+            mlflow.log_param("bias", bias)
+            mlflow.log_param("benchmark_functions", func_name)
+            mlflow.log_param("data", data)
+            mlflow.log_param("solver", solver_name)
+            mlflow.log_param("n_corrupted_points", n_corrupted_points)
+            #mlflow.log_param("output_noise_prob",output_noise_prob)
 
 
-        # Start training and testing
+            # Start training and testing
 
-        mlflow.log_metric("MAE_val", val_loss.detach().numpy())
-        mlflow.log_metric("MAE_train", train_loss.detach().numpy())
-        mlflow.log_metric("MAE_test", test_loss.detach().numpy())
-        mlflow.log_metric("MSE_val", val_MSE.detach().numpy())
-        mlflow.log_metric("MSE_train", train_MSE.detach().numpy())
-        mlflow.log_metric("MSE_test", test_MSE.detach().numpy())
-        #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
-        mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
+            mlflow.log_metric("MAE_val", val_loss.detach().numpy())
+            mlflow.log_metric("MAE_train", train_loss.detach().numpy())
+            mlflow.log_metric("MAE_test", test_loss.detach().numpy())
+            mlflow.log_metric("MSE_val", val_MSE.detach().numpy())
+            mlflow.log_metric("MSE_train", train_MSE.detach().numpy())
+            mlflow.log_metric("MSE_test", test_MSE.detach().numpy())
+            #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
+            mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
 
-        mlflow.log_param("training time", end_time_model - start_time_model)
-        print(f'Training duration: {end_time_model - start_time_model}')
+            mlflow.log_param("training time", end_time_model - start_time_model)
+            print(f'Training duration: {end_time_model - start_time_model}')
 
-        # save model
-        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"./logged_models/SCNN_{now_string}.pt"
-        mlflow.set_tag("path_to_model", str_path)
-        
-        mlflow.pytorch.save_state_dict(
-                model_torch.state_dict(),
-                path=str_path,
-            )
+            # save model
+            now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
+            str_path = f"./logged_models/SCNN_{now_string}.pt"
+            mlflow.set_tag("path_to_model", str_path)
+            
+            mlflow.pytorch.save_state_dict(
+                    model_torch.state_dict(),
+                    path=str_path,
+                )
+        except:
+            val_loss = 1e6
+            mlflow.log_metric("MAE_val", val_loss)
         mlflow.end_run() #end run
         
     return  {
@@ -415,68 +422,72 @@ def objective_SCNN_no_reg(params, data, criterion, solver_name, experiment, n_co
     
     
     with mlflow.start_run() as run:
-       
-        # train
-        model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, lamb_reg=  lamb_reg, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, loss=loss)
-        
-        # torch model
-        model_torch = model.get_torch_model(verbose=verbose)
-        
-        # get training loss 
-        train_loss, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
-        
-        # get validation loss
-        val_loss, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
-        
-        # get test loss
-        test_loss, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
+        try: 
+            # train
+            model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, lamb_reg=  lamb_reg, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, loss=loss)
+            
+            # torch model
+            model_torch = model.get_torch_model(verbose=verbose)
+            
+            # get training loss 
+            train_loss, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+            
+            # get validation loss
+            val_loss, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
+            
+            # get test loss
+            test_loss, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
 
-        mse = nn.MSELoss()
-        train_MSE, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            mse = nn.MSELoss()
+            train_MSE, output = test_torch_model(model_torch, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            
+            # get validation loss
+            val_MSE, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
+            
+            # get test loss
+            test_MSE, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
+
+            end_time_model =  datetime.now() 
         
-        # get validation loss
-        val_MSE, output =  test_torch_model(model_torch, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
-        
-        # get test loss
-        test_MSE, output = test_torch_model(model_torch,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
-
-        end_time_model =  datetime.now() 
-    
-        mlflow.set_tag("model_name", "SCNN_no_reg")
-        mlflow.log_param("loss", loss)
-        mlflow.log_param("lamb_reg", lamb_reg)
-        mlflow.log_param("max_neurons", max_neurons)
-        mlflow.log_param("bias", bias)
-        mlflow.log_param("benchmark_functions", func_name)
-        mlflow.log_param("data", data)
-        mlflow.log_param("solver", solver_name)
-        mlflow.log_param("n_corrupted_points", n_corrupted_points)
-        #mlflow.log_param("output_noise_prob",output_noise_prob)
+            mlflow.set_tag("model_name", "SCNN_no_reg")
+            mlflow.log_param("loss", loss)
+            mlflow.log_param("lamb_reg", lamb_reg)
+            mlflow.log_param("max_neurons", max_neurons)
+            mlflow.log_param("bias", bias)
+            mlflow.log_param("benchmark_functions", func_name)
+            mlflow.log_param("data", data)
+            mlflow.log_param("solver", solver_name)
+            mlflow.log_param("n_corrupted_points", n_corrupted_points)
+            #mlflow.log_param("output_noise_prob",output_noise_prob)
 
 
-        # Start training and testing
+            # Start training and testing
 
-        mlflow.log_metric("MAE_val", val_loss.detach().numpy())
-        mlflow.log_metric("MAE_train", train_loss.detach().numpy())
-        mlflow.log_metric("MAE_test", test_loss.detach().numpy())
-        mlflow.log_metric("MSE_val", val_MSE.detach().numpy())
-        mlflow.log_metric("MSE_train", train_MSE.detach().numpy())
-        mlflow.log_metric("MSE_test", test_MSE.detach().numpy())
-        #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
-        mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
+            mlflow.log_metric("MAE_val", val_loss.detach().numpy())
+            mlflow.log_metric("MAE_train", train_loss.detach().numpy())
+            mlflow.log_metric("MAE_test", test_loss.detach().numpy())
+            mlflow.log_metric("MSE_val", val_MSE.detach().numpy())
+            mlflow.log_metric("MSE_train", train_MSE.detach().numpy())
+            mlflow.log_metric("MSE_test", test_MSE.detach().numpy())
+            #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
+            mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
 
-        mlflow.log_param("training time", end_time_model - start_time_model)
-        print(f'Training duration: {end_time_model - start_time_model}')
+            mlflow.log_param("training time", end_time_model - start_time_model)
+            print(f'Training duration: {end_time_model - start_time_model}')
 
-        # save model
-        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"./logged_models/SCNN_no_reg_{now_string}.pt"
-        mlflow.set_tag("path_to_model", str_path)
-        
-        mlflow.pytorch.save_state_dict(
-                model_torch.state_dict(),
-                path=str_path,
-            )
+            # save model
+            now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
+            str_path = f"./logged_models/SCNN_no_reg_{now_string}.pt"
+            mlflow.set_tag("path_to_model", str_path)
+            
+            mlflow.pytorch.save_state_dict(
+                    model_torch.state_dict(),
+                    path=str_path,
+                )
+        except:
+            val_loss = 1e6
+            mlflow.log_metric("MAE_val", val_loss)
+
         mlflow.end_run() #end run
         
     return  {
@@ -507,67 +518,70 @@ def objective_linreg(params, data, criterion, solver_name, experiment, n_corrupt
     
     
     with mlflow.start_run() as run:
-       
-        # train
-        model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, lamb_reg=  lamb_reg, verbose=verbose, solver=solver_name, loss=loss, regularizer=regularizer)
+        try:
+            # train
+            model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, lamb_reg=  lamb_reg, verbose=verbose, solver=solver_name, loss=loss, regularizer=regularizer)
+            
         
-       
-        # get training loss 
-        train_loss, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+            # get training loss 
+            train_loss, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+            
+            # get validation loss
+            val_loss, output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
+            
+            # get test loss
+            test_loss, output = test_lin_reg(model, data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
+
+            mse = nn.MSELoss()
+            train_MSE, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            
+            # get validation loss
+            val_MSE, output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
+            
+            # get test loss
+            test_MSE, output = test_lin_reg(model,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
+
+            end_time_model =  datetime.now() 
         
-        # get validation loss
-        val_loss, output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
-        
-        # get test loss
-        test_loss, output = test_lin_reg(model, data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
-
-        mse = nn.MSELoss()
-        train_MSE, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
-        
-        # get validation loss
-        val_MSE, output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
-        
-        # get test loss
-        test_MSE, output = test_lin_reg(model,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
-
-        end_time_model =  datetime.now() 
-    
-        mlflow.set_tag("model_name", "linreg")
-        mlflow.log_param("lamb_reg", lamb_reg)
-        mlflow.log_param("bias", True)
-        mlflow.log_param("benchmark_functions", func_name)
-        mlflow.log_param("data", data)
-        mlflow.log_param("solver", solver_name)
-        mlflow.log_param("n_corrupted_points", n_corrupted_points)
-        #mlflow.log_param("output_noise_prob",output_noise_prob)
-        mlflow.log_param("Beta", model.Beta)
-        mlflow.log_param("b", model.b)
+            mlflow.set_tag("model_name", "linreg")
+            mlflow.log_param("lamb_reg", lamb_reg)
+            mlflow.log_param("bias", True)
+            mlflow.log_param("benchmark_functions", func_name)
+            mlflow.log_param("data", data)
+            mlflow.log_param("solver", solver_name)
+            mlflow.log_param("n_corrupted_points", n_corrupted_points)
+            #mlflow.log_param("output_noise_prob",output_noise_prob)
+            mlflow.log_param("Beta", model.Beta)
+            mlflow.log_param("b", model.b)
 
 
-        # Start training and testing
+            # Start training and testing
 
-        mlflow.log_metric("MAE_val", val_loss)
-        mlflow.log_metric("MAE_train", train_loss)
-        mlflow.log_metric("MAE_test", test_loss)
-        mlflow.log_metric("MSE_val", val_MSE)
-        mlflow.log_metric("MSE_train", train_MSE)
-        mlflow.log_metric("MSE_test", test_MSE)
-        #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
-        #mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
+            mlflow.log_metric("MAE_val", val_loss)
+            mlflow.log_metric("MAE_train", train_loss)
+            mlflow.log_metric("MAE_test", test_loss)
+            mlflow.log_metric("MSE_val", val_MSE)
+            mlflow.log_metric("MSE_train", train_MSE)
+            mlflow.log_metric("MSE_test", test_MSE)
+            #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
+            #mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
 
-        mlflow.log_param("training time", end_time_model - start_time_model)
-        print(f'Training duration: {end_time_model - start_time_model}')
+            mlflow.log_param("training time", end_time_model - start_time_model)
+            print(f'Training duration: {end_time_model - start_time_model}')
 
-        # save model
-        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"./logged_models/linreg_{now_string}.csv"
-        np.savetxt(
-                str_path,
-                np.concatenate(( model.Beta, np.array([model.b]))),
-                delimiter=",",
-            )
-        mlflow.set_tag("path_to_model", str_path)
-        
+            # save model
+            now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
+            str_path = f"./logged_models/linreg_{now_string}.csv"
+            np.savetxt(
+                    str_path,
+                    np.concatenate(( model.Beta, np.array([model.b]))),
+                    delimiter=",",
+                )
+            mlflow.set_tag("path_to_model", str_path)
+            
+        except:
+            val_loss = 1e6
+            mlflow.log_metric("MAE_val", val_loss)
         mlflow.end_run() #end run
         
     return  {
@@ -599,66 +613,69 @@ def objective_DR_linreg(params, data, criterion, solver_name, experiment, n_corr
     
     
     with mlflow.start_run() as run:
-       
-        # train
-        model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, radius=  radius, verbose=verbose, solver=solver_name)
-       
-        # get training loss 
-        train_loss, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+        try:
+            # train
+            model.train(X_train=data.X_train_scaled, Y_train=data.Y_train_scaled, radius=  radius, verbose=verbose, solver=solver_name)
         
-        # get validation loss
-        val_loss, output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
+            # get training loss 
+            train_loss, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=criterion)
+            
+            # get validation loss
+            val_loss, output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=criterion)
+            
+            # get test loss
+            test_loss,output = test_lin_reg(model, data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
+
+            mse = nn.MSELoss()
+            train_MSE, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
+            
+            # get validation loss
+            val_MSE,output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
+            
+            # get test loss
+            test_MSE,output = test_lin_reg(model,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
+
+            end_time_model =  datetime.now() 
         
-        # get test loss
-        test_loss,output = test_lin_reg(model, data.X_test_scaled, data.Y_test_scaled, criterion=criterion )
-
-        mse = nn.MSELoss()
-        train_MSE, output = test_lin_reg(model, data.X_train_scaled, data.Y_train_scaled, criterion=mse)
-        
-        # get validation loss
-        val_MSE,output =  test_lin_reg(model, data.X_val_scaled, data.Y_val_scaled, criterion=mse)
-        
-        # get test loss
-        test_MSE,output = test_lin_reg(model,data.X_test_scaled, data.Y_test_scaled, criterion=mse )
-
-        end_time_model =  datetime.now() 
-    
-        mlflow.set_tag("model_name", "DR_linreg")
-        mlflow.log_param("radius", radius)
-        mlflow.log_param("bias", True)
-        mlflow.log_param("benchmark_functions", func_name)
-        mlflow.log_param("data", data)
-        mlflow.log_param("solver", solver_name)
-        mlflow.log_param("n_corrupted_points", n_corrupted_points)
-        #mlflow.log_param("output_noise_prob",output_noise_prob)
-        mlflow.log_param("Beta", model.Beta)
-        mlflow.log_param("b", model.b)
+            mlflow.set_tag("model_name", "DR_linreg")
+            mlflow.log_param("radius", radius)
+            mlflow.log_param("bias", True)
+            mlflow.log_param("benchmark_functions", func_name)
+            mlflow.log_param("data", data)
+            mlflow.log_param("solver", solver_name)
+            mlflow.log_param("n_corrupted_points", n_corrupted_points)
+            #mlflow.log_param("output_noise_prob",output_noise_prob)
+            mlflow.log_param("Beta", model.Beta)
+            mlflow.log_param("b", model.b)
 
 
-        # Start training and testing
+            # Start training and testing
 
-        mlflow.log_metric("MAE_val", val_loss)
-        mlflow.log_metric("MAE_train", train_loss)
-        mlflow.log_metric("MAE_test", test_loss)
-        mlflow.log_metric("MSE_val", val_MSE)
-        mlflow.log_metric("MSE_train", train_MSE)
-        mlflow.log_metric("MSE_test", test_MSE)
-        #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
-        #mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
+            mlflow.log_metric("MAE_val", val_loss)
+            mlflow.log_metric("MAE_train", train_loss)
+            mlflow.log_metric("MAE_test", test_loss)
+            mlflow.log_metric("MSE_val", val_MSE)
+            mlflow.log_metric("MSE_train", train_MSE)
+            mlflow.log_metric("MSE_test", test_MSE)
+            #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
+            #mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
 
-        mlflow.log_param("training time", end_time_model - start_time_model)
-        print(f'Training duration: {end_time_model - start_time_model}')
+            mlflow.log_param("training time", end_time_model - start_time_model)
+            print(f'Training duration: {end_time_model - start_time_model}')
 
-        # save model
-        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"./logged_models/DR_linreg_{now_string}.csv"
-        np.savetxt(
-                str_path,
-                np.concatenate(( model.Beta, np.array([model.b]))),
-                delimiter=",",
-            )
-        mlflow.set_tag("path_to_model", str_path)
-        
+            # save model
+            now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
+            str_path = f"./logged_models/DR_linreg_{now_string}.csv"
+            np.savetxt(
+                    str_path,
+                    np.concatenate(( model.Beta, np.array([model.b]))),
+                    delimiter=",",
+                )
+            mlflow.set_tag("path_to_model", str_path)
+            
+        except:
+            val_loss = 1e6
+            mlflow.log_metric("MAE_val", val_loss)
         mlflow.end_run() #end run
         
     return  {
@@ -710,62 +727,65 @@ def objective_FNN(params, data, criterion, experiment, n_corrupted_points, func_
 
     
     with mlflow.start_run() as run:
-        mlflow.set_tag("model_name", "FNN")
-        mlflow.log_param("epochs", n_epochs)
-        mlflow.log_param("batch size", batch_size)
-        mlflow.log_param("dropout", dropout_p)
-        #mlflow.log_param("random state", random_state)
-        mlflow.log_param("learning rate", learning_rate)
-        mlflow.set_tag("FNN", True)
-        mlflow.log_param("benchmark_functions", func_name)
-        mlflow.log_param("data", data)
-        mlflow.log_param("n_corrupted_points", n_corrupted_points)
-        mlflow.log_param("n_hidden", n_hidden)
-        mlflow.log_param("solver", "Adam")
-        
-        # Test without training 
-        print("Untrained test\n--------")
-        untrained_loss = hm.test_FNN_model(val_loader, model, criterion)
-        #print()
-        # Start training and testing
-        for ix_epoch in range(n_epochs):
-            train_loss = hm.train_FNN_model(train_loader, model, criterion, optimizer=optimizer)
-            val_loss = hm.test_FNN_model(val_loader, model, criterion)
-            if ix_epoch % 30 == 0 and verbose:
-                print(f"Epoch {ix_epoch}\n---------")
-                print(f"train_loss: {train_loss}")
-                print(f"test_loss: {val_loss}")
+        try:
+            mlflow.set_tag("model_name", "FNN")
+            mlflow.log_param("epochs", n_epochs)
+            mlflow.log_param("batch size", batch_size)
+            mlflow.log_param("dropout", dropout_p)
+            #mlflow.log_param("random state", random_state)
+            mlflow.log_param("learning rate", learning_rate)
+            mlflow.set_tag("FNN", True)
+            mlflow.log_param("benchmark_functions", func_name)
+            mlflow.log_param("data", data)
+            mlflow.log_param("n_corrupted_points", n_corrupted_points)
+            mlflow.log_param("n_hidden", n_hidden)
+            mlflow.log_param("solver", "Adam")
             
-        mse = nn.MSELoss()
-        test_mae = hm.test_FNN_model(test_loader, model, criterion)
-        test_mse = hm.test_FNN_model(test_loader, model, mse)
-        val_mse = hm.test_FNN_model(val_loader, model, mse)
-        train_mse = hm.test_FNN_model(train_loader, model, mse)
-        # Log results
-        mlflow.log_metric("MAE_val", val_loss)
-        mlflow.log_metric("MAE_train", train_loss)
-        mlflow.log_metric("MAE_test", test_mae)
-        mlflow.log_metric("MSE_val", val_mse)
-        mlflow.log_metric("MSE_test", test_mse)
-        mlflow.log_metric("MSE_train", train_mse)
+            # Test without training 
+            print("Untrained test\n--------")
+            untrained_loss = hm.test_FNN_model(val_loader, model, criterion)
+            #print()
+            # Start training and testing
+            for ix_epoch in range(n_epochs):
+                train_loss = hm.train_FNN_model(train_loader, model, criterion, optimizer=optimizer)
+                val_loss = hm.test_FNN_model(val_loader, model, criterion)
+                if ix_epoch % 30 == 0 and verbose:
+                    print(f"Epoch {ix_epoch}\n---------")
+                    print(f"train_loss: {train_loss}")
+                    print(f"test_loss: {val_loss}")
+                
+            mse = nn.MSELoss()
+            test_mae = hm.test_FNN_model(test_loader, model, criterion)
+            test_mse = hm.test_FNN_model(test_loader, model, mse)
+            val_mse = hm.test_FNN_model(val_loader, model, mse)
+            train_mse = hm.test_FNN_model(train_loader, model, mse)
+            # Log results
+            mlflow.log_metric("MAE_val", val_loss)
+            mlflow.log_metric("MAE_train", train_loss)
+            mlflow.log_metric("MAE_test", test_mae)
+            mlflow.log_metric("MSE_val", val_mse)
+            mlflow.log_metric("MSE_test", test_mse)
+            mlflow.log_metric("MSE_train", train_mse)
 
-        
-        #signature_sign = infer_signature(val_dataset.X.numpy(force=True), model.forward(torch.Tensor(val_dataset.X)).numpy(force=True))
-        #mlflow.pytorch.log_model(pytorch_model=model, artifact_path=experiment.artifact_location, signature = signature_sign)
+            
+            #signature_sign = infer_signature(val_dataset.X.numpy(force=True), model.forward(torch.Tensor(val_dataset.X)).numpy(force=True))
+            #mlflow.pytorch.log_model(pytorch_model=model, artifact_path=experiment.artifact_location, signature = signature_sign)
 
-        end_time_model = datetime.now()
+            end_time_model = datetime.now()
 
-   
-        # save model
-        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
-        str_path = f"./logged_models/FNN_{now_string}.pt"
-        mlflow.set_tag("path_to_model", str_path)
-        
-        mlflow.pytorch.save_state_dict(
-                model.state_dict(),
-                path=str_path,
-            )
-        
+    
+            # save model
+            now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")
+            str_path = f"./logged_models/FNN_{now_string}.pt"
+            mlflow.set_tag("path_to_model", str_path)
+            
+            mlflow.pytorch.save_state_dict(
+                    model.state_dict(),
+                    path=str_path,
+                )
+        except:
+            val_loss = 1e6
+            mlflow.log_metric("MAE_val", val_loss)
     mlflow.end_run() #end run
     
     # return important information for hyperopt

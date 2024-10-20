@@ -84,12 +84,14 @@ FUNCTIONS_LIST = [
 for corruption_percentage in corruption_percentage_list:
         n_corrupted_points = int(N*(1-test_size)*corruption_percentage) 
         for run in range(n_runs):
+                experiment_name = f"large_test_CC_run{run}_corper{str(corruption_percentage)[2:]}"
                 try:
-                        experiment = mlflow.get_experiment_by_name(f"large_test_CC_run{run}_corper{str(corruption_percentage)[2:]}")
+                        #experiment = mlflow.set_experiment("test")
+                        experiment = mlflow.get_experiment_by_name(experiment_name)
                         experiment_id = experiment.experiment_id
                 except AttributeError:
-                        experiment_id = mlflow.create_experiment(f"large_test_CC_run{run}_corper{str(corruption_percentage)[2:]}", artifact_location='./mlruns/')
-                        experiment = mlflow.get_experiment_by_name(f"large_test_CC_run{run}_corper{str(corruption_percentage)[2:]}")
+                        experiment_id = mlflow.create_experiment(experiment_name, artifact_location="file:/your/absolute/path")
+                        experiment = mlflow.set_experiment(experiment_name)
 
                 #experiment = mlflow.set_experiment(f"large_test_CC_run{run}_corper{corruption_percentage}")
                 # Get Experiment Details
