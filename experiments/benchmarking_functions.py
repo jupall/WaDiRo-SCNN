@@ -1,6 +1,6 @@
 
 import sys
-sys.path.append('../src')
+sys.path.append('../src/wadiroscnn')
 import numpy as np
 import scipy as sc
 import models as hm
@@ -20,6 +20,16 @@ from functools import partial
 import sliced_wasserstein_utils as sw
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+
+from hyperopt.base import miscs_update_idxs_vals
+from hyperopt.pyll.base import dfs, as_apply
+from hyperopt.pyll.stochastic import implicit_stochastic_symbols
+from hyperopt import hp, fmin, tpe, anneal, Trials, STATUS_OK,  pyll
+from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.ensemble import IsolationForest
+from sklearn.metrics import precision_score, make_scorer
+from functools import partial
 
 
 
@@ -772,4 +782,278 @@ def objective_FNN(params, data, criterion, experiment, n_corrupted_points, func_
     return  {
          "status": STATUS_OK,
          "loss": val_loss
+        }
+
+class ExhaustiveSearchError(Exception):
+    pass
+
+
+def validate_space_exhaustive_search(space):
+    supported_stochastic_symbols = ['randint', 'quniform', 'qloguniform', 'qnormal', 'qlognormal', 'categorical']
+    for node in dfs(as_apply(space)):
+        if node.name in implicit_stochastic_symbols:
+            if node.name not in supported_stochastic_symbols:
+                raise ExhaustiveSearchError('Exhaustive search is only possible with the following stochastic symbols: ' + ', '.join(supported_stochastic_symbols))
+
+
+def suggest(new_ids, domain, trials, seed, nbMaxSucessiveFailures=1000):
+
+    # Build a hash set for previous trials
+    hashset = set([hash(frozenset([(key, value[0]) if len(value) > 0 else ((key, None))
+                                   for key, value in trial['misc']['vals'].items()])) for trial in trials.trials])
+
+    rng =  np.random.default_rng(seed)#np.random.RandomState(seed)
+    rval = []
+    for _, new_id in enumerate(new_ids):
+        newSample = False
+        nbSucessiveFailures = 0
+        while not newSample:
+            # -- sample new specs, idxs, vals
+            idxs, vals = pyll.rec_eval(
+                domain.s_idxs_vals,
+                memo={
+                    domain.s_new_ids: [new_id],
+                    domain.s_rng: rng,
+                })
+            new_result = domain.new_result()
+            new_misc = dict(tid=new_id, cmd=domain.cmd, workdir=domain.workdir)
+            miscs_update_idxs_vals([new_misc], idxs, vals)
+
+            # Compare with previous hashes
+            h = hash(frozenset([(key, value[0]) if len(value) > 0 else (
+                (key, None)) for key, value in vals.items()]))
+            if h not in hashset:
+                newSample = True
+            else:
+                # Duplicated sample, ignore
+                nbSucessiveFailures += 1
+            
+            if nbSucessiveFailures > nbMaxSucessiveFailures:
+                # No more samples to produce
+                return []
+
+        rval.extend(trials.new_trial_docs([new_id],
+                                          [None], [new_result], [new_misc]))
+    return rval
+
+
+def eps_stability_verif(model, bound_eps:float, bound_x:float, scaler_y = None, scaler_x = None, bound_type:str="box", bigM1:float=1e3, bigM2:float=1e3, bigM3:float=1e3, slack:float = 0.0, solver:str = "SCIP", return_all:bool = False, verbose:bool = False):
+    assert slack >= 0.0, "Slack must be a positive value or zero"
+    assert bigM1 > 0.0, "bigM1 must be a positive value"
+    assert bigM2 > 0.0, "bigM2 must be a positive value"
+    assert bigM3 > 0.0, "bigM3 must be a positive value"
+    assert bound_eps > 0.0, "bound_eps must be a positive value"
+    assert bound_x > 0.0, "bound_x must be a positive value"
+    assert bound_type in ["squared_norm", "box"], "bound_type must be either 'squared_norm' or 'box'"
+
+    G = model.sampled_u.T
+    u = np.array(model.v_opt - model.w_opt)
+    Beta = np.array(u).flatten(order='F').reshape(-1,1) 
+    #Beta_2 = np.vstack((Beta, Beta))
+
+    P, d_mod = G.shape
+
+    y = cp.Variable((1))
+    y_eps = cp.Variable((1))
+    x = cp.Variable((d_mod,1))
+    eps = cp.Variable((d_mod, 1)) # last dimension must be constrained to zero if bias
+    gamma = cp.Variable((P, 1), boolean=True)
+    eta = cp.Variable((P, 1), boolean=True)
+    A = cp.Variable((P, d_mod))
+    B = cp.Variable((P, d_mod))
+    if slack > 0:
+        slack_A = cp.Variable((P, d_mod))
+        slack_B = cp.Variable((P, d_mod))
+    else:
+        slack_A = np.zeros((P, d_mod))
+        slack_B = np.zeros((P, d_mod))
+    x_eps = cp.Variable((d_mod, 1))
+    obj_abs = cp.Variable((1))
+    delta = cp.Variable((1), boolean=True)
+    #product_x = cp.Variable((P,1))
+    #product_x_eps = cp.Variable((P,1))
+
+    cstr = []
+
+    if slack > 0:
+        cstr += [slack_A <= slack]
+        cstr += [slack_A >= -slack]
+        cstr += [slack_B <= slack]
+        cstr += [slack_B >= -slack]
+    # x
+    cstr += [y == Beta.T@(cp.vec(A, order='F'))] # beta = v-w donc correct avec un seul vec(A)
+    #cstr += [x.T @ G.T == product_x.T]
+    #for i in range(P):
+    #    cstr += [product_x[i,0] <= bigM3*gamma[i,0]]
+    #    cstr += [product_x[i,0] >= -bigM3*(1 - gamma[i,0])]
+    cstr += [x.T @ G.T <= bigM3*gamma.T]
+    cstr += [x.T @ G.T >= -bigM3*(1.0 - gamma.T)]
+    for k in range(d_mod):
+        for i in range(P):
+            cstr += [x[k] >= A[i,k] - slack_A[i,k] + bigM1*(1-gamma[i,0])]
+            cstr += [x[k] <= A[i,k] + slack_A[i,k] - bigM1*(1-gamma[i,0])]
+            cstr += [A[i,k]<= bigM1*gamma[i, 0]]
+            cstr += [A[i,k]>= -bigM1*gamma[i, 0]]
+
+    # x_eps
+    cstr += [y_eps == Beta.T@(cp.vec(B, order='F'))] 
+    cstr += [x_eps == (x + eps)]
+    cstr += [(x_eps).T @ G.T <= bigM3*eta.T] 
+    cstr += [(x_eps).T @ G.T >= -bigM3*(1.0 - eta.T)]   
+    #cstr += [x_eps.T @ G.T == product_x_eps.T]
+    #for i in range(P):
+    #    cstr += [product_x_eps[i,0] <= bigM3*eta[i,0]]
+    #    cstr += [product_x_eps[i,0] >= -bigM3*(1 - eta[i,0])]
+    for k in range(d_mod):
+        for i in range(P):
+            cstr += [x_eps[k] >= B[i,k] - slack_B[i,k] + bigM1*(1-eta[i, 0])]
+            cstr += [x_eps[k] <= B[i,k] + slack_B[i,k] - bigM1*(1-eta[i, 0])]
+            cstr += [B[i,k]<= bigM1*eta[i, 0]]
+            cstr += [B[i,k]>= -bigM1*eta[i, 0]]
+
+    # must consider model bias
+    if model.bias:
+        cstr += [eps[-1,:] == 0.0]
+        cstr += [x[-1,:]== 1.0]
+
+    # bounds
+    if bound_type == "squared_norm":
+        cstr += [cp.sum_squares(eps) <= bound_eps**2]
+        cstr += [cp.sum_squares(x) <= bound_x**2]
+        cstr += [cp.sum_squares(x_eps) <= bound_x**2]
+    elif bound_type == "box" or bound_type != "squared_norm":
+        cstr += [eps <= bound_eps]
+        cstr += [eps >= -bound_eps]
+        cstr += [x <= bound_x]
+        cstr += [x >= -bound_x]
+
+
+    # loop hole for absolute value objective
+    cstr += [obj_abs >= (y_eps - y)]
+    cstr += [obj_abs >= -(y_eps - y)]
+    cstr += [y_eps - y <= bigM2*delta]
+    cstr += [y_eps - y >= -bigM2*(1-delta)]
+    cstr += [obj_abs <= y_eps - y + bigM2*(1-delta)]
+    cstr += [obj_abs <= -(y_eps - y) + bigM2*delta]
+    cstr += [obj_abs >= 0.0]
+    cstr += [obj_abs <= 1.0e10]
+
+
+    obj = obj_abs
+
+    prob = cp.Problem(cp.Maximize(obj), cstr)
+    prob.solve(solver=solver, verbose =verbose)
+
+    assert prob.status == cp.OPTIMAL, "Optimization problem did not converge"
+    if verbose:
+        print(x.value.T @ G.T)
+        print(gamma.value.T)
+        print(x_eps.value.T @ G.T)
+        print(eta.value.T)
+        print(y.value)
+        print(y_eps.value)
+    # return the scaled value of the objective function
+    if scaler_y is not None and scaler_x is not None:
+        y = scaler_y.inverse_transform(np.reshape(y.value, (1,1)))
+        y_eps = scaler_y.inverse_transform(np.reshape(y_eps.value, (1,1)))
+        eps = np.abs(scaler_x.inverse_transform(x_eps.value[0:-1,:].T) - scaler_x.inverse_transform(x.value[0:-1,:].T))
+        
+        return np.abs(y - y_eps), y, y_eps, eps if return_all else np.abs(y - y_eps)
+    else:
+        return np.abs(y.value - y_eps.value), y.value, y_eps.value, eps.value if return_all else np.abs(y.value - y_eps.value)
+        
+
+class fake_scaler:
+    def __init__(self):
+        pass
+    def inverse_transform(self, x):
+        return x
+    def transform(self, x):
+        return x
+    def fit_transform(self, x):
+        return x
+    
+def stability_objective_scnn(params, data, solver_name, experiment, wasserstein, dataset_name, verbose, bound_eps, bound_type, bigM1, bigM2, bigM3):
+    # unwrap hyperparameters:
+    radius = float(params['radius'])
+    max_neurons = int(params['max_neurons'])
+    #wasserstein = str(params['wasserstein'])
+    #bound_type = str(params['bound_type']) # 'box' or 'squared_norm'
+    bias = True
+    
+
+    # print info on run
+    print("------start of trial: ------")
+    print(f"radius= {radius}, max_neurons = {max_neurons}, bias = {bias}")
+
+
+    start_time_model = datetime.now() # start timer for whole training
+    # define model
+    model = hm.wadiro_scnn()
+    max_norm = np.linalg.norm(data['X_train_scaled'], axis=1).max()
+    
+    with mlflow.start_run() as run:
+       
+       
+        # train
+        model.train(X_train=data['X_train_scaled'], Y_train=data['Y_train_scaled'], radius = radius, bias = bias, max_neurons=max_neurons, verbose=verbose, solver=solver_name, wasserstein=wasserstein,)
+        end_time_model =  datetime.now() 
+        # torch model
+        y_pred_train = model.predict_with_sampled_u(data['X_train_scaled'])
+        y_pred_test = model.predict_with_sampled_u(data['X_test_scaled'])
+
+        mean_absolute_error_train = sk.metrics.mean_absolute_error(data['Y_train'], data['scaler_y'].inverse_transform(y_pred_train))
+        mean_absolute_error_test = sk.metrics.mean_absolute_error(data['Y_test'], data['scaler_y'].inverse_transform(y_pred_test))
+
+        root_mean_squared_error_train = sk.metrics.root_mean_squared_error(data['Y_train'], data['scaler_y'].inverse_transform(y_pred_train))
+        root_mean_squared_error_test = sk.metrics.root_mean_squared_error(data['Y_test'], data['scaler_y'].inverse_transform(y_pred_test))
+        
+        # verification of stability
+        #bound_type = "squared_norm" # 'box' or 'squared_norm'
+        bound_x = 5 if bound_type == "box" else 2*max_norm
+
+        try:
+            stability, y, y_eps, eps = eps_stability_verif(model, bound_eps=bound_eps, bound_x=bound_x, scaler_y=data['scaler_y'], scaler_x=data['scaler_x'], bound_type=bound_type, bigM1=bigM1,bigM2=bigM2, bigM3=bigM3, slack=0, solver=solver_name, return_all=True, verbose=verbose)
+        except:
+            stability = np.nan
+            eps = np.nan
+
+        mlflow.log_param('eps_norm', np.linalg.norm(eps))
+        mlflow.log_param('eps', eps)
+        mlflow.set_tag("model_name", f"wadiro_scnn_{wasserstein}")
+        mlflow.log_param("radius", radius)
+        mlflow.log_param("max_neurons", max_neurons)
+        mlflow.log_param("bias", bias)
+        mlflow.log_param("dataset", dataset_name)
+        mlflow.log_param("data", data)
+        mlflow.log_param("solver", solver_name)
+        mlflow.log_param("wasserstein", wasserstein)
+        mlflow.log_param("bound_eps", bound_eps)
+        mlflow.log_param("bound_type", bound_type)
+        mlflow.log_param("bigM1", bigM1)
+        mlflow.log_param("bigM2", bigM2)
+        mlflow.log_param("bigM3", bigM3)
+        mlflow.log_param("max_norm", max_norm)
+        mlflow.log_param("bound_type", bound_type)
+        mlflow.log_param("bound_x", bound_x)
+
+        # Start training and testing
+        mlflow.log_metric('stability', stability)
+        mlflow.log_metric("MAE_train", mean_absolute_error_train)
+        mlflow.log_metric("MAE_test", mean_absolute_error_test)
+        mlflow.log_metric("RMSE_train", root_mean_squared_error_train)
+        mlflow.log_metric("RMSE_test", root_mean_squared_error_test)
+        #signature = infer_signature(np.array(data.X_val_scaled, dtype=np.float64), np.array(model_torch.forward(torch.Tensor(data.X_val_scaled, dtype=torch.float64)), dtype =np.float64))
+        #mlflow.pytorch.log_model(pytorch_model=model_torch, artifact_path=experiment.artifact_location)
+
+        mlflow.log_param("training time", end_time_model - start_time_model)
+        print(f'Training duration: {end_time_model - start_time_model}')
+
+        # save model
+        now_string = end_time_model.strftime("%m_%d_%Y___%H_%M_%S")       
+        mlflow.end_run() #end run
+        
+    return  {
+         "status": STATUS_OK,
+         "loss": mean_absolute_error_test
         }
