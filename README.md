@@ -67,14 +67,12 @@ https://github.com/jupall/WaDiRo-SCNN/blob/main/experiments/tutorial.ipynb
 ## Cite our work and read our paper:
 
 ```
-@misc{pallage2024wadiroscnn,
-      title={Wasserstein Distributionally Robust Shallow Convex Neural Networks}, 
-      author={Julien Pallage and Antoine Lesage-Landry},
-      year={2024},
-      eprint={2407.16800},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2407.16800}, 
+@article{pallage2025wdiroscnn,
+  title={Wasserstein distributionally robust shallow convex neural networks},
+  author={Pallage, Julien and Lesage-Landry, Antoine},
+  journal={INFORMS Journal on Optimization},
+  year={2025},
+  publisher={INFORMS}
 }
 ```
 
