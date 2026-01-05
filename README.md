@@ -76,7 +76,7 @@ https://github.com/jupall/WaDiRo-SCNN/blob/main/experiments/tutorial.ipynb
 }
 ```
 
-Link: https://arxiv.org/abs/2407.16800
+Links: https://arxiv.org/abs/2407.16800, https://pubsonline.informs.org/doi/abs/10.1287/ijoo.2024.0048
 
 ## References:
 
